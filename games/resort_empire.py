@@ -16,6 +16,10 @@ class Sprites:
     tile_grass: pygame.Surface
     tile_path_dark: pygame.Surface
     tile_path_light: pygame.Surface
+    bush: pygame.Surface
+    sand: pygame.Surface
+    cursor: pygame.Surface
+    outline: pygame.Surface
 
 def load_sprites():
     SPRITE_PATH = "resources/re/images/"
@@ -24,6 +28,10 @@ def load_sprites():
         tile_grass = pygame.image.load(f"{SPRITE_PATH}tile-grass.png").convert_alpha(),
         tile_path_dark = pygame.image.load(f"{SPRITE_PATH}tile-path-dark.png").convert_alpha(),
         tile_path_light = pygame.image.load(f"{SPRITE_PATH}tile-path-light.png").convert_alpha(),
+        bush = pygame.image.load(f"{SPRITE_PATH}bush.png").convert_alpha(),
+        sand = pygame.image.load(f"{SPRITE_PATH}sand.png").convert_alpha(),
+        cursor = pygame.image.load(f"{SPRITE_PATH}cursor.png").convert_alpha(),
+        outline = pygame.image.load(f"{SPRITE_PATH}outline.png").convert_alpha()
     )
 
 @dataclass
@@ -34,8 +42,17 @@ class Camera:
     velocity_y: float = 0.0
 
 @dataclass
+class Cursor:
+    position_x: float = Display.virtual_width / 2
+    position_y: float = Display.virtual_height / 2
+    tile_x: int = 0
+    tile_y: int = 0
+
+@dataclass
 class Structure:
     sprite: pygame.Surface
+    offset_x: float = 0.0
+    offset_y: float = 0.0
 
 @dataclass
 class Grid:
@@ -46,6 +63,11 @@ class Grid:
     def __post_init__(self):
         self.tiles = starting_grid(self.grid_size)
 
+def ring(x, y, rings):
+    center = 14
+    dist = max(abs(y - center), abs(x - center))
+    return dist in rings
+
 def starting_grid(size):
     sprite = load_sprites()
     
@@ -53,17 +75,19 @@ def starting_grid(size):
     for y in range(size):
         row = []
         for x in range(size):
-            if x in [0, 1, size-1, size] or y in [0, 1, size-1, size]:
+            if ring(x, y, [14, 13]):
                 row.append(Structure(sprite.tile_path_dark))
-            elif x in [2, 3, 4, 5, size-2, size-3, size-4, size-4] or y in [2, 3, 4, 5, size-2, size-3, size-4, size-4]:
+            elif ring(x, y, [12, 11, 10, 9]):
                 row.append(Structure(sprite.tile_path_light))
+            elif ring(x, y, [8]) and (x,y) not in [(22,10), (22,11), (22,12), (22,13)]:
+                row.append(Structure(sprite.bush, 0, 12))
             else:
-                row.append(Structure(sprite.tile_grass))
+                row.append(Structure(sprite.sand))
         tiles.append(row)
         
     return tiles
 
-def render_pipeline(screen, sprite, grid, camera):
+def render_pipeline(screen, sprite, grid, camera, cursor):
     screen.blit(sprite.background, (0, 0))
 
     for y, row in enumerate(grid.tiles):
@@ -72,7 +96,12 @@ def render_pipeline(screen, sprite, grid, camera):
             y_pos = (y * (grid.tile_height / 2)) + (x * (grid.tile_height / 2))
             x_pos -= camera.position_x
             y_pos -= camera.position_y
-            screen.blit(tile.sprite, (x_pos, y_pos))
+            x_pos -= tile.offset_x
+            y_pos -= tile.offset_y
+            _sprite = sprite.outline if (x,y) == (cursor.tile_x, cursor.tile_y) else tile.sprite
+            screen.blit(_sprite, (x_pos, y_pos))
+
+    #screen.blit(sprite.cursor, (cursor.position_x, cursor.position_y))
 
 def start(screen, window, clock, joystick):
     # PS5 controller
@@ -84,6 +113,7 @@ def start(screen, window, clock, joystick):
     # starting values
     camera = Camera()
     grid = Grid()
+    cursor = Cursor()
 
     # window scaling
     scaled_width = Display.virtual_width * Display.scale_factor
@@ -107,6 +137,11 @@ def start(screen, window, clock, joystick):
         if abs(controller.input.L.y) > 0:
             camera.velocity_y += 0.5 * controller.input.L.y
 
+        if abs(controller.input.R.x) > 0 and cursor.position_x > 0 and cursor.position_x < Display.virtual_width:
+            cursor.position_x += 2 * controller.input.R.x
+        if abs(controller.input.R.y) > 0 and cursor.position_y > 0 and cursor.position_y < Display.virtual_height:
+            cursor.position_y += 2 * controller.input.R.y
+
         if controller.input.OPTIONS.down:
             isPlaying = False
 
@@ -116,8 +151,14 @@ def start(screen, window, clock, joystick):
         camera.position_x += camera.velocity_x
         camera.position_y += camera.velocity_y
 
+        # Logic - Cursor
+        cursor_world_x = camera.position_x + cursor.position_x
+        cursor_world_y = camera.position_y + cursor.position_y
+        cursor.tile_x = (math.floor((((cursor_world_x / 2) + cursor_world_y) + 6) / 11.5)) - 1
+        cursor.tile_y = math.floor((-((cursor_world_x / 2) - cursor_world_y) + 6) / 11.5)
+
         # Rendering
-        render_pipeline(screen, sprite, grid, camera)
+        render_pipeline(screen, sprite, grid, camera, cursor)
 
         upscaled = pygame.transform.scale(screen, (scaled_width, scaled_height))
         window.blit(upscaled, (0, 0))
