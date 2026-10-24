@@ -3,7 +3,7 @@ from lib.PS5 import PS5controller
 import pygame
 import math
 import sys
-from games import marshmallow_kingdom, bitzy_blitz
+from games import marshmallow_kingdom, bitzy_blitz, resort_empire
 
 @dataclass
 class Display:
@@ -125,9 +125,8 @@ def menu():
                 marshmallow_kingdom.start(virtual_screen, window, clock, joystick)
             elif game_index == 1:
                 bitzy_blitz.start(virtual_screen, window, clock, joystick)
-        #elif controller.input.OPTIONS.pressed:
-        #    pygame.quit()
-        #    sys.exit()
+            elif game_index == 3:
+                resort_empire.start(virtual_screen, window, clock, joystick)
 
         # Rendering
         background: pygame.Surface = index_to_thumbnail[game_index]
