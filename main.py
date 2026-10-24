@@ -23,6 +23,12 @@ class Thumbnail:
     BitzyBlitz: pygame.Surface
     MonsterCraft: pygame.Surface
     ResortEmpire: pygame.Surface
+    ArmyOfAges: pygame.Surface
+    AgeOfWar: pygame.Surface
+    DaysOfMonsters: pygame.Surface
+    Jacksmith: pygame.Surface
+    ShoreSiege: pygame.Surface
+
 
 def load_thumbnails():
     THUMBNAIL_PATH = "resources/images/thumbnail-"
@@ -30,7 +36,12 @@ def load_thumbnails():
         SuperMarshmallowKingdom = pygame.image.load(f"{THUMBNAIL_PATH}smk.jpg").convert(),
         BitzyBlitz = pygame.image.load(f"{THUMBNAIL_PATH}bb.jpg").convert(),
         MonsterCraft = pygame.image.load(f"{THUMBNAIL_PATH}mc.jpg").convert(),
-        ResortEmpire = pygame.image.load(f"{THUMBNAIL_PATH}re.jpg").convert()
+        ResortEmpire = pygame.image.load(f"{THUMBNAIL_PATH}re.jpg").convert(),
+        ArmyOfAges = pygame.image.load(f"{THUMBNAIL_PATH}aog.jpg").convert(),
+        AgeOfWar = pygame.image.load(f"{THUMBNAIL_PATH}aow.jpg").convert(),
+        DaysOfMonsters = pygame.image.load(f"{THUMBNAIL_PATH}dom.jpg").convert(),
+        Jacksmith = pygame.image.load(f"{THUMBNAIL_PATH}js.jpg").convert(),
+        ShoreSiege = pygame.image.load(f"{THUMBNAIL_PATH}ss.jpg").convert()
     )
 
 @dataclass
@@ -72,13 +83,7 @@ image = Image(
 def menu():
     # load
     thumbnail = load_thumbnails()
-    index_to_thumbnail = {
-        0: thumbnail.SuperMarshmallowKingdom,
-        1: thumbnail.BitzyBlitz,
-        2: thumbnail.MonsterCraft,
-        3: thumbnail.ResortEmpire
-    }
-    games = 4
+    games = [thumbnail.SuperMarshmallowKingdom, thumbnail.BitzyBlitz, thumbnail.MonsterCraft, thumbnail.ResortEmpire, thumbnail.ArmyOfAges, thumbnail.AgeOfWar, thumbnail.DaysOfMonsters, thumbnail.Jacksmith, thumbnail.ShoreSiege]
     sfx = load_sfx()
 
     # starting values
@@ -115,10 +120,10 @@ def menu():
         # Input - Controller
         controller.input.Update()
         if controller.input.UP.pressed:
-            game_index = (game_index + (games - 1)) % games
+            game_index = (game_index + (len(games) - 1)) % len(games)
             sfx.up.play()
         elif controller.input.DOWN.pressed:
-            game_index = (game_index + 1) % games
+            game_index = (game_index + 1) % len(games)
             sfx.down.play()
         elif controller.input.CROSS.pressed:
             if game_index == 0:
@@ -129,7 +134,7 @@ def menu():
                 resort_empire.start(virtual_screen, window, clock, joystick)
 
         # Rendering
-        background: pygame.Surface = index_to_thumbnail[game_index]
+        background: pygame.Surface = games[game_index]
         virtual_screen.blit(background, (0, 0))
         scaled_display = pygame.transform.scale(virtual_screen, (Display.scaled_width, Display.scaled_height))
         window.blit(scaled_display, (0, 0))
